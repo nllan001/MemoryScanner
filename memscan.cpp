@@ -9,6 +9,13 @@ using namespace std;
 #define IS_IN_SEARCH(mb, offset) (mb->searchmask[(offset)/8] & (1<<((offset) % 8)))
 #define REMOVE_FROM_SEARCH(mb, offset) mb->searchmask[(offset)/8] &= ~(1<<(offset % 8))
 
+typedef enum {
+	COND_UNCONDITIONAL,
+	COND_EQUALS,
+	COND_INCREASED,
+	COND_DECREASED
+} Search_Condition;
+
 // Memory block data structure
 // -hproc: Handle of the process the memory block belongs to.
 // -addr: Base address of the memory block in the process's virtual address space.
@@ -31,6 +38,7 @@ public:
 
 	_Memblock *next;
 
+	// Initialize a memory block
 	_Memblock(HANDLE hProc, MEMORY_BASIC_INFORMATION *meminfo, int data_size) {
 		this->hProc = hProc;
 		this->addr = (unsigned char*) meminfo->BaseAddress;
@@ -44,6 +52,7 @@ public:
 		this->next = NULL;
 	}
 
+	// Update a memory block with which bytes the condition specifies
 	void update() {
 		static unsigned char temp_buf[128*1024];
 		SIZE_T bytes_left;
@@ -78,10 +87,12 @@ public:
 
 } Memblock;
 
+// Linked list of memory blocks
 typedef class _Scan {
 public:
 	Memblock *head;
 
+	// Initialize the linked list with memory blocks of the specified process
 	_Scan(unsigned int pid, int data_size) {
 		head = NULL;
 		MEMORY_BASIC_INFORMATION meminfo;
@@ -108,6 +119,7 @@ public:
 		}
 	}
 
+	// Update the linked list with new conditions
 	void update() {
 		Memblock *temp_head = this->head;
 		while(temp_head) {
@@ -116,6 +128,7 @@ public:
 		}
 	}
 
+	// Print the info about the memory blocks in the list
 	void scan_dump() {
 		Memblock *temp_head = this->head;
 		while(temp_head) {
