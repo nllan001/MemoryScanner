@@ -1,122 +1,137 @@
+#include <iostream>
 #include <stdio.h>
+#include <vector>
 #include <windows.h>
 
-#define WRITABLE ( PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY )
+using namespace std;
 
-typedef struct _MEMBLOCK {
+#define WRITABLE ( PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY )
+#define IS_IN_SEARCH(mb, offset) (mb->searchmask[(offset)/8] & (1<<((offset) % 8)))
+#define REMOVE_FROM_SEARCH(mb, offset) mb->searchmask[(offset)/8] &= ~(1<<(offset % 8))
+
+// Memory block data structure
+// -hproc: Handle of the process the memory block belongs to.
+// -addr: Base address of the memory block in the process's virtual address space.
+// -size: Size of the page region of pages with similar attributes.
+// -buffer: Buffer to hold 
+// -searchmask:
+// -matches:
+// -data_size:
+// -next: Next memory block. Acts as a linked list.
+typedef class _Memblock {
+public:
 	HANDLE hProc;
 	unsigned char *addr;
 	int size;
-	unsigned char *buffer;
-	struct _MEMBLOCK *next;
-} MEMBLOCK;
+	vector<unsigned char> buffer;
 
-MEMBLOCK* create_memblock(HANDLE hProc, MEMORY_BASIC_INFORMATION *meminfo) {
-	MEMBLOCK* mb = (MEMBLOCK*) malloc(sizeof(MEMBLOCK));
-	if(mb) {
-		mb->hProc = hProc;
-		mb->addr = (unsigned char*) meminfo->BaseAddress;
-		mb->size = meminfo->RegionSize;
-		mb->buffer = (unsigned char*) malloc(meminfo->RegionSize);
-		mb->next = NULL;
+	vector<bool> searchmask;
+	int matches;
+	int data_size;
+
+	_Memblock *next;
+
+	_Memblock(HANDLE hProc, MEMORY_BASIC_INFORMATION *meminfo, int data_size) {
+		this->hProc = hProc;
+		this->addr = (unsigned char*) meminfo->BaseAddress;
+		this->size = meminfo->RegionSize;
+		vector<unsigned char> temp_buf(meminfo->RegionSize, 0);
+		this->buffer = temp_buf;
+		vector<bool> temp_mask(meminfo->RegionSize/8, 1);
+		this->searchmask = temp_mask;
+		this->matches = meminfo->RegionSize;
+		this->data_size = data_size;
+		this->next = NULL;
 	}
-	return mb;
-}
 
-void free_memblock(MEMBLOCK *mb) {
-	if(mb) {
-		if(mb->buffer) {
-			free(mb->buffer);
+/*
+	void update() {
+		static unsigned char temp_buf[128*1024];
+		SIZE_T bytes_left;
+		SIZE_T total_read;
+		SIZE_T bytes_to_read;
+		SIZE_T bytes_read;
+
+		if(mb->matches > 0) {
+			bytes_left = this->size;
+			total_read = 0;
+			this->matches = 0;
 		}
-		free(mb);
+
 	}
-}
+	*/
 
-void update_memblock(MEMBLOCK *mb) {
-	static unsigned char tempbuf[128*1024];
-	SIZE_T bytes_left;
-	SIZE_T total_read;
-	SIZE_T bytes_to_read;
-	SIZE_T bytes_read;
+	~_Memblock() {}
 
-	bytes_left = mb->size;
-	total_read = 0;
+} Memblock;
 
-	while(bytes_left > 0) {
-		bytes_to_read = (bytes_left > sizeof(tempbuf)) ? sizeof(tempbuf) : bytes_left;
-		ReadProcessMemory(mb->hProc, mb->addr + total_read, tempbuf, bytes_to_read, &bytes_read);
-		printf("%u %u %u %u\n", bytes_left, sizeof(tempbuf), bytes_to_read, bytes_read);
-		if(bytes_read != bytes_to_read) break;
-		memcpy(mb->buffer + total_read, tempbuf, bytes_read);
-		bytes_left -= bytes_read;
-		total_read += bytes_read;
-	}
-	mb->size = total_read;
-}
+typedef class _Scan {
+public:
+	Memblock *head;
 
-MEMBLOCK* create_scan(unsigned int pid) {
-	MEMBLOCK *mb_list = NULL;
-	MEMORY_BASIC_INFORMATION meminfo;
-	unsigned char *addr = 0;
+	_Scan(unsigned int pid, int data_size) {
+		head = NULL;
+		MEMORY_BASIC_INFORMATION meminfo;
+		unsigned char *addr;
+		
+		HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
 
-	HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-	
-	if(hProc) {
-		SYSTEM_INFO si;
-		GetSystemInfo(&si);
-		while(addr < si.lpMaximumApplicationAddress) {
-			if(VirtualQueryEx(hProc, addr, &meminfo, sizeof(meminfo)) == 0) {
-				break;
-			}
-
-			if((meminfo.State & MEM_COMMIT) && (meminfo.Protect & WRITABLE)) {
-				MEMBLOCK *mb = create_memblock(hProc, &meminfo);
-				if(mb) {
-					update_memblock(mb);
-					mb->next = mb_list;
-					mb_list = mb;
+		if(hProc) {
+			SYSTEM_INFO si;
+			GetSystemInfo(&si);
+			while(addr < si.lpMaximumApplicationAddress) {
+				if(VirtualQueryEx(hProc, addr, &meminfo, sizeof(meminfo)) == 0) {
+					break;
 				}
+				if((meminfo.State & MEM_COMMIT) && (meminfo.Protect & WRITABLE)) {
+					Memblock *mb = new Memblock(hProc, &meminfo, data_size);
+					if(mb) {
+						mb->next = head;
+						head = mb;
+					}
+				}
+				addr = (unsigned char*) meminfo.BaseAddress + meminfo.RegionSize;
 			}
-			addr = (unsigned char*) meminfo.BaseAddress + meminfo.RegionSize;
 		}
 	}
 
-	return mb_list;
-}
-
-void free_scan(MEMBLOCK *mb_list) {
-	CloseHandle(mb_list->hProc);
-	while(mb_list) {
-		MEMBLOCK *mb = mb_list;
-		mb_list = mb_list->next;
-		free_memblock(mb);
-	}
-}
-
-void update_scan(MEMBLOCK *mb_list) {
-	MEMBLOCK *mb = mb_list;
-	while(mb) {
-		update_memblock(mb);
-		mb = mb->next;
-	}
-}
-
-void dump_scan_info(MEMBLOCK *mb_list) {
-	MEMBLOCK *mb = mb_list;
-	while(mb) {
-		printf("0x%08x %d\r\n", mb->addr, mb->size);
-		for(int i = 0; i < mb->size; i++) {
-			printf("%02x", mb->buffer[i]);
+	void scan_dump() {
+		Memblock *temp_head = this->head;
+		while(temp_head) {
+			printf("0x%08x %d\r\n", temp_head->addr, temp_head->size);
+			/*
+			for(int i = 0; i < temp_head->size; i++) {
+				printf("%02x", temp_head->buffer[i]);
+			}
+			*/
+			temp_head = temp_head->next;
 		}
-		mb = mb->next;
 	}
-}
+
+	~_Scan() {}
+
+} Scan;
 
 int main(int argc, char *argv[]) {
-	MEMBLOCK *scan = create_scan(atoi(argv[1]));
-	if(scan) {
-		dump_scan_info(scan);
-		free(scan);
+	Scan new_scan(atoi(argv[1]), 4);
+	if(new_scan.head) {
+		new_scan.scan_dump();
 	}
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
