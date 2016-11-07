@@ -44,7 +44,6 @@ public:
 		this->next = NULL;
 	}
 
-/*
 	void update() {
 		static unsigned char temp_buf[128*1024];
 		SIZE_T bytes_left;
@@ -52,14 +51,28 @@ public:
 		SIZE_T bytes_to_read;
 		SIZE_T bytes_read;
 
-		if(mb->matches > 0) {
+		if(this->matches > 0) {
 			bytes_left = this->size;
 			total_read = 0;
 			this->matches = 0;
-		}
 
+			while(bytes_left > 0) {
+				bytes_to_read = (bytes_left > sizeof(temp_buf)) ? sizeof(temp_buf) : bytes_left;
+				if(ReadProcessMemory(this->hProc, this->addr + total_read, temp_buf, bytes_to_read, &bytes_read)) {
+					if(bytes_read != bytes_to_read) {
+						break;
+					}
+				}
+
+				for(unsigned int i = 0; i < sizeof(temp_buf); i++) {
+					this->buffer[total_read + i] = temp_buf[i];
+				}
+
+				bytes_left -= bytes_read;
+				total_read += bytes_read;
+			}
+		}
 	}
-	*/
 
 	~_Memblock() {}
 
@@ -92,6 +105,14 @@ public:
 				}
 				addr = (unsigned char*) meminfo.BaseAddress + meminfo.RegionSize;
 			}
+		}
+	}
+
+	void update() {
+		Memblock *temp_head = this->head;
+		while(temp_head) {
+			temp_head->update();
+			temp_head = temp_head->next;
 		}
 	}
 
