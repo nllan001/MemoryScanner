@@ -72,6 +72,7 @@ public:
 	// Update a memory block with which bytes the condition specifies
 	void update(Search_Condition condition, unsigned int val) {
 		unsigned char temp_buf[128*1024];
+		vector<bool> temp_search(this->searchmask.size(), 0);
 		SIZE_T bytes_left;
 		SIZE_T total_read;
 		SIZE_T bytes_to_read;
@@ -120,10 +121,11 @@ public:
 
 							if(is_match) {
 								this->matches++;
-							} else {
+								temp_search[total_read+offset] = 1;
+							} //else {
 								//this->remove_from_search(total_read+offset);
-								this->searchmask[total_read+offset] = 0;
-							}
+							//	this->searchmask[total_read+offset] = 0;
+							//}
 						}
 					}
 
@@ -139,6 +141,7 @@ public:
 			}
 		}
 		//this->size = total_read;
+		this->searchmask = temp_search;
 	}
 
 	~_Memblock() {}
