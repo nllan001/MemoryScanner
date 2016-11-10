@@ -93,18 +93,22 @@ public:
 						if(this->searchmask[total_read+offset]) {
 							bool is_match = false;
 							unsigned int temp_val;
+							unsigned int prev_val = 0;
 
 							// Read the value from the buffer depending on data size
 							switch(this->data_size) {
 								case 1:
 									temp_val = *((unsigned char*) &temp_buf[offset]);
+									prev_val = *((unsigned char*) &buffer[total_read+offset]);
 									break;
 								case 2:
 									temp_val = *((unsigned short*) &temp_buf[offset]);
+									prev_val = *((unsigned short*) &buffer[total_read+offset]);
 									break;
 								case 4:
 								default:
 									temp_val = *((unsigned int*) &temp_buf[offset]);
+									prev_val = *((unsigned int*) &buffer[total_read+offset]);
 									break;
 							}
 
@@ -112,6 +116,12 @@ public:
 							switch(condition) {
 								case COND_EQUALS:
 									is_match = (temp_val == val);
+									break;
+								case COND_INCREASED:
+									is_match = (prev_val < temp_val);
+									break;
+								case COND_DECREASED:
+									is_match = (prev_val > temp_val);
 									break;
 								default:
 									break;
@@ -287,21 +297,21 @@ public:
 } Scan;
 
 int main(int argc, char *argv[]) {
-	Scan new_scan(atoi(argv[1]), 1);
+	Scan new_scan(atoi(argv[1]), 4);
 	if(new_scan.head) {
 		/*
 		new_scan.update(COND_UNCONDITIONAL, 4);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.scan_dump();
 		*/
-		new_scan.update(COND_EQUALS, 14);
+		new_scan.update(COND_EQUALS, 1000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.print_matches();
 		{
 			int a;
 			cin >> a;
 		}
-		new_scan.update(COND_EQUALS, 16);
+		new_scan.update(COND_EQUALS, 2000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
 		new_scan.print_matches();
 		/*
