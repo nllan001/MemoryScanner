@@ -209,6 +209,20 @@ public:
 		}
 	}
 
+	void poke(HANDLE hProc, unsigned char *addr, int data_size, unsigned int val) {
+		if(WriteProcessMemory(hProc, addr, &val, data_size, NULL) == 0) {
+			cout << "Failed to poke" << endl;
+		}
+	}
+
+	unsigned int peek(HANDLE hProc, unsigned char *addr, int data_size) {
+		unsigned int val = 0;
+		if(ReadProcessMemory(hProc, addr, &val, data_size, NULL) == 0) {
+			cout << "Failed to peek" << endl;
+		}
+		return val;
+	}
+
 	// Print the info about the memory blocks in the list
 	void scan_dump() {
 		Memblock *temp_head = this->head;
@@ -229,7 +243,8 @@ public:
 		while(temp_head) {
 			for(unsigned int offset = 0; offset < temp_head->size; offset += temp_head->data_size) {
 				if(temp_head->is_in_search(offset)) {
-					printf("0x%08x\r\n", temp_head->addr + offset);
+					unsigned int val = peek(temp_head->hProc, temp_head->addr + offset, temp_head->data_size);
+					printf("0x%08x: 0x%08x (%d)\r\n", temp_head->addr + offset, val, val);
 				}
 			}
 			temp_head = temp_head->next;
@@ -308,12 +323,20 @@ int main(int argc, char *argv[]) {
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.print_matches();
 		{
-			int a;
+			char a;
 			cin >> a;
 		}
-		new_scan.update(COND_EQUALS, 2000);
+		new_scan.update(COND_DECREASED, 2000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
 		new_scan.print_matches();
+		{
+			char a;
+			cin >> a;
+		}
+		new_scan.update(COND_INCREASED, 3000);
+		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
+		new_scan.print_matches();
+
 		/*
 		new_scan.update(COND_EQUALS, 2000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
