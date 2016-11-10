@@ -175,6 +175,9 @@ public:
 				}
 				addr = (unsigned char*) meminfo.BaseAddress + meminfo.RegionSize;
 			}
+		} else {
+			cout << "Process is not available" << endl;
+			exit(0);
 		}
 	}
 
@@ -284,21 +287,21 @@ public:
 } Scan;
 
 int main(int argc, char *argv[]) {
-	Scan new_scan(atoi(argv[1]), 4);
+	Scan new_scan(atoi(argv[1]), 1);
 	if(new_scan.head) {
 		/*
 		new_scan.update(COND_UNCONDITIONAL, 4);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.scan_dump();
 		*/
-		new_scan.update(COND_EQUALS, 123454321);
+		new_scan.update(COND_EQUALS, 14);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.print_matches();
 		{
 			int a;
 			cin >> a;
 		}
-		new_scan.update(COND_EQUALS, 123454321);
+		new_scan.update(COND_EQUALS, 16);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
 		new_scan.print_matches();
 		/*
