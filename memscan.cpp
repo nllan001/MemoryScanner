@@ -6,10 +6,6 @@
 using namespace std;
 
 #define WRITABLE ( PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY )
-/*
-#define IS_IN_SEARCH(mb, offset) (mb->searchmask[(offset)/8] & (1<<((offset) % 8)))
-#define REMOVE_FROM_SEARCH(mb, offset) mb->searchmask[(offset)/8] &= ~(1<<(offset % 8))
-*/
 
 typedef enum {
 	COND_UNCONDITIONAL,
@@ -78,11 +74,13 @@ public:
 		SIZE_T bytes_to_read;
 		SIZE_T bytes_read;
 
+		// Only check if there are at least some matches possible
 		if(this->matches > 0) {
 			bytes_left = this->size;
 			total_read = 0;
 			this->matches = 0;
 
+			// Keep reading process memory while there are still bytes left to read
 			while(bytes_left > 0) {
 				bytes_to_read = (bytes_left < sizeof(temp_buf)) ? bytes_left : sizeof(temp_buf);
 				if(ReadProcessMemory(this->hProc, this->addr + total_read, temp_buf, bytes_to_read, &bytes_read)) {
@@ -90,8 +88,8 @@ public:
 						break;
 					}
 
+					// Iterate through the buffer, incrementing by the data size (unsigned char(1)/short(2)/int(4))
 					for(SIZE_T offset = 0; offset < bytes_read; offset += this->data_size) {
-						//if(this->is_in_search(total_read+offset)) {
 						if(this->searchmask[total_read+offset]) {
 							bool is_match = false;
 							unsigned int temp_val;
@@ -122,10 +120,7 @@ public:
 							if(is_match) {
 								this->matches++;
 								temp_search[total_read+offset] = 1;
-							} //else {
-								//this->remove_from_search(total_read+offset);
-							//	this->searchmask[total_read+offset] = 0;
-							//}
+							}
 						}
 					}
 
@@ -140,7 +135,7 @@ public:
 				}
 			}
 		}
-		//this->size = total_read;
+		// Update searchmask with newly made searchmask based off of currently seen  matches
 		this->searchmask = temp_search;
 	}
 
@@ -159,15 +154,18 @@ public:
 		MEMORY_BASIC_INFORMATION meminfo;
 		unsigned char *addr;
 		
+		// Gets the handle of the process with a request for all access
 		HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
 
 		if(hProc) {
 			SYSTEM_INFO si;
 			GetSystemInfo(&si);
 			while(addr < si.lpMaximumApplicationAddress) {
+				// Retrievs the BASIC_MEMORY_INFORMATION object of the process of interest
 				if(VirtualQueryEx(hProc, addr, &meminfo, sizeof(meminfo)) == 0) {
 					break;
 				}
+				// Check for flags to ensure it isn't empty reserved memory and it has write permissions
 				if((meminfo.State & MEM_COMMIT) && (meminfo.Protect & WRITABLE)) {
 					Memblock *mb = new Memblock(hProc, &meminfo, data_size);
 					if(mb) {
@@ -184,6 +182,7 @@ public:
 	void update(Search_Condition condition, unsigned int val) {
 		Memblock *temp_head = this->head;
 		while(temp_head) {
+			// If the condition is unconditional, the searhmask is updated with a match for each piece of data in the buffer
 			if(condition == COND_UNCONDITIONAL) {
 				for(unsigned int i = 0; i < temp_head->searchmask.size(); i += temp_head->data_size) {
 					temp_head->searchmask[i] = 1;
@@ -211,6 +210,7 @@ public:
 		}
 	}
 
+	// Print the addresses of every match
 	void print_matches() {
 		Memblock *temp_head = this->head;
 		while(temp_head) {
@@ -223,6 +223,7 @@ public:
 		}
 	}
 
+	// Get matches through counting search mask values
 	unsigned int get_matches() {
 		Memblock *temp_head = this->head;
 		unsigned int count = 0;
@@ -237,6 +238,7 @@ public:
 		return count;
 	}
 
+	// Get matches through summing the match counts
 	unsigned int get_matches2() {
 		Memblock *temp_head = this->head;
 		unsigned int count = 0;
@@ -247,6 +249,7 @@ public:
 		return count;
 	}
 
+	// Get the size of the linked list in bytes
 	unsigned int get_size() {
 		Memblock *temp_head = this->head;
 		unsigned int size = 0;
@@ -257,6 +260,7 @@ public:
 		return size;
 	}
 
+	// Get how many nodes are in the linked list
 	int get_blocks() {
 		Memblock *temp_head = this->head;
 		int count = 0;
@@ -267,7 +271,9 @@ public:
 		return count;
 	}
 
+	// Free up the memory used to create memblocks when done and close the handle to the process
 	~_Scan() {
+		CloseHandle(head->hProc);
 		while(head) {
 			Memblock *temp_head = head;
 			head = head->next;
@@ -287,11 +293,15 @@ int main(int argc, char *argv[]) {
 		*/
 		new_scan.update(COND_EQUALS, 123454321);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
-		//new_scan.print_matches();
-		/*
-		new_scan.update(COND_EQUALS, 2000);
+		new_scan.print_matches();
+		{
+			int a;
+			cin >> a;
+		}
+		new_scan.update(COND_EQUALS, 123454321);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
-		//new_scan.print_matches();
+		new_scan.print_matches();
+		/*
 		new_scan.update(COND_EQUALS, 2000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
 		//new_scan.print_matches();
