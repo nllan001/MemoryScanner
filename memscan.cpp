@@ -58,13 +58,6 @@ public:
 		}
 	}
 
-	// Set off a byte's flag in the search mask
-	void remove_from_search(SIZE_T offset) {
-		if(offset < ((SIZE_T) this->size)) {
-			this->searchmask[offset] = 0;
-		}
-	}
-
 	// Update a memory block with which bytes the condition specifies
 	void update(Search_Condition condition, unsigned int val) {
 		unsigned char temp_buf[128*1024];
