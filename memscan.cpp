@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <vector>
 #include <windows.h>
+#include <fstream>
 
 using namespace std;
 
@@ -306,7 +307,54 @@ public:
 
 } Scan;
 
+void view_tasklist() {
+	system("tasklist | awk '{printf \"%-30s %-15s \\n \", $1, $2}'");
+}
+
 int main(int argc, char *argv[]) {
+
+	while(1) {
+		cout << "Memory Scan Menu (Enter number): " << endl
+			<< "1. View processes" << endl
+			<< "2. Scan new process" << endl
+			<< "3. Filter for equal value" << endl
+			<< "4. Filter for increased value" << endl
+			<< "5. Filter for decreased value" << endl
+			<< "6. Overwrite value" << endl
+			<< "7. Exit" << endl;
+
+		char choice;
+		cin >> choice;
+		switch(choice) {
+			case '1':
+				cout << "List of current processes with their PIDs:" << endl;
+				view_tasklist();
+				break;
+			case '2':
+				cout << "Choice 2." << endl;
+				break;
+			case '3':
+				cout << "Choice 3." << endl;
+				break;
+			case '4':
+				cout << "Choice 4." << endl;
+				break;
+			case '5':
+				cout << "Choice 5." << endl;
+				break;
+			case '6':
+				cout << "Choice 6." << endl;
+				break;
+			case '7':
+				cout << "Exiting." << endl;
+				return 0;
+				break;
+			default:
+				cout << "Not a valid choice." << endl;
+				break;
+		}
+	}
+
 	Scan new_scan(atoi(argv[1]), 4);
 	if(new_scan.head) {
 		/*
