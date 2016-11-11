@@ -18,7 +18,7 @@ typedef enum {
 // -hproc: Handle of the process the memory block belongs to.
 // -addr: Base address of the memory block in the process's virtual address space.
 // -size: Size of the page region of pages with similar attributes.
-// -buffer: Buffer to hold 
+// -buffer: Buffer to hold the bytes of memory obtained for each memory block.
 // -searchmask: A boolean array to show which bytes in the buffer are to be ignored.
 // -matches: How many matches have been found that agree with the conditions placed.
 // -data_size: The size of the data type of concern. ex. 1 for unsigned char and 4 for int.
@@ -209,12 +209,14 @@ public:
 		}
 	}
 
+	// Write a value to a specified address in a process's memory
 	void poke(HANDLE hProc, unsigned char *addr, int data_size, unsigned int val) {
 		if(WriteProcessMemory(hProc, addr, &val, data_size, NULL) == 0) {
 			cout << "Failed to poke" << endl;
 		}
 	}
 
+	// Reads the value from a specified address in a process's memory
 	unsigned int peek(HANDLE hProc, unsigned char *addr, int data_size) {
 		unsigned int val = 0;
 		if(ReadProcessMemory(hProc, addr, &val, data_size, NULL) == 0) {
