@@ -27,3 +27,7 @@
 	can successfully narrow down locations in memory based on conditions.
 -Next step is to clean up the code and proceed with the rest of the 
 	program.
+
+11/12/2016
+-Some minor bug fixes were worked out and the peek/poke (read/write) 
+	functions were implemented. Starting work on the basic UI.
