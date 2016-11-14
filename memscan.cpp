@@ -152,6 +152,10 @@ typedef class _Scan {
 public:
 	Memblock *head;
 
+	_Scan() {
+		head = NULL;
+	}
+
 	// Initialize the linked list with memory blocks of the specified process
 	_Scan(unsigned int pid, int data_size) {
 		head = NULL;
@@ -180,8 +184,8 @@ public:
 				addr = (unsigned char*) meminfo.BaseAddress + meminfo.RegionSize;
 			}
 		} else {
-			cout << "Process is not available" << endl;
-			exit(0);
+			cout << "PID is not available or valid" << endl;
+			head = NULL;
 		}
 	}
 
@@ -273,6 +277,21 @@ public:
 		return count;
 	}
 
+	// Get first match's address
+	unsigned char* get_match() {
+		Memblock *temp_head = this->head;
+		unsigned int count = 0;
+		while(temp_head) {
+			for(unsigned int offset = 0; offset < temp_head->size; offset += temp_head->data_size) {
+				if(temp_head->is_in_search(offset)) {
+					return temp_head->addr + offset;
+				}
+			}
+			temp_head = temp_head->next;
+		}
+		return NULL;
+	}
+
 	// Get the size of the linked list in bytes
 	unsigned int get_size() {
 		Memblock *temp_head = this->head;
@@ -297,7 +316,9 @@ public:
 
 	// Free up the memory used to create memblocks when done and close the handle to the process
 	~_Scan() {
-		CloseHandle(head->hProc);
+		if(head) {
+			CloseHandle(head->hProc);
+		}
 		while(head) {
 			Memblock *temp_head = head;
 			head = head->next;
@@ -307,14 +328,93 @@ public:
 
 } Scan;
 
+// Retrieve the local list of processes
 void view_tasklist() {
 	system("tasklist | awk '{printf \"%-30s %-15s \\n \", $1, $2}'");
 }
 
-int main(int argc, char *argv[]) {
+// Retrieve the pid of interest from the user
+unsigned int get_pid() {
+	cout << "Enter the process you were interested in (Enter pid):" << endl;
+	string choice_string;
+	cin >> choice_string;
+	int choice = atoi(choice_string.c_str());
+	return (unsigned int) choice;
+}
 
+// Create a new scan and segment it by specific data type
+Scan* create_scan(Scan *current_scan, unsigned int &pid) {
 	while(1) {
-		cout << "Memory Scan Menu (Enter number): " << endl
+		cout << endl << "===================================" << endl
+			<< "How do you want to segment the scan (Enter number)?" << endl
+			<< "1. Char (1 byte)" << endl
+			<< "2. Short (2 bytes)" << endl
+			<< "3. Int (4 bytes)" << endl
+			<< "4. Go back" << endl;
+		int choice_1;
+		cin >> choice_1;
+		unsigned int new_pid;
+		switch(choice_1) {
+			case 1:
+				new_pid = get_pid();
+				{
+					Scan *new_scan_1 = new Scan(new_pid, 1); 
+					if(new_scan_1->head) {
+						if(current_scan) {
+							delete current_scan;
+						}
+						pid = new_pid;
+						return new_scan_1;
+					} else {
+						cout << "Scan was invalid" << endl;
+					}
+				}
+				break;
+			case 2:
+				new_pid = get_pid();
+				{
+					Scan *new_scan_2 = new Scan(new_pid, 2); 
+					if(new_scan_2->head) {
+						if(current_scan) {
+							delete current_scan;
+						}
+						pid = new_pid;
+						return new_scan_2;
+					} else {
+						cout << "Scan was invalid" << endl;
+					}
+				}
+				break;
+			case 3:
+				new_pid = get_pid();
+				{
+					Scan *new_scan_3 = new Scan(new_pid, 4); 
+					if(new_scan_3->head) {
+						if(current_scan) {
+							delete current_scan;
+						}
+						pid = new_pid;
+						return new_scan_3;
+					} else {
+						cout << "Scan was invalid" << endl;
+					}
+				}
+				break;
+			case 4:
+				return current_scan;
+			default:
+				cout << "Invalid choice. Try again." << endl;
+				break;
+		}
+	}
+}
+
+int main(int argc, char *argv[]) {
+	Scan *current_scan;
+	unsigned int current_pid;
+	while(1) {
+		cout << endl << "===================================" << endl
+			<< "Memory Scan Menu (Enter number): " << endl
 			<< "1. View processes" << endl
 			<< "2. Scan new process" << endl
 			<< "3. Filter for equal value" << endl
@@ -331,7 +431,8 @@ int main(int argc, char *argv[]) {
 				view_tasklist();
 				break;
 			case '2':
-				cout << "Choice 2." << endl;
+				cout << "Creating new scan:" << endl;
+				current_scan = create_scan(current_scan, current_pid);
 				break;
 			case '3':
 				cout << "Choice 3." << endl;
@@ -354,14 +455,19 @@ int main(int argc, char *argv[]) {
 				break;
 		}
 	}
-
+	if(current_scan->head) {
+		delete current_scan;
+	}
+/*
 	Scan new_scan(atoi(argv[1]), 4);
 	if(new_scan.head) {
+		*/
 		/*
 		new_scan.update(COND_UNCONDITIONAL, 4);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.scan_dump();
 		*/
+		/*
 		new_scan.update(COND_EQUALS, 1000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.print_matches();
@@ -379,7 +485,12 @@ int main(int argc, char *argv[]) {
 		new_scan.update(COND_INCREASED, 3000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
 		new_scan.print_matches();
-
+		{
+			char a;
+			cin >> a;
+		}
+		new_scan.poke(new_scan.head->hProc, new_scan.get_match(), 4, 20);
+*/
 		/*
 		new_scan.update(COND_EQUALS, 2000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
@@ -387,7 +498,7 @@ int main(int argc, char *argv[]) {
 		new_scan.update(COND_EQUALS, 1000);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
 		*/
-	}
+	//}
 	return 0;
 }
 
