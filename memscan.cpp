@@ -409,6 +409,32 @@ Scan* create_scan(Scan *current_scan, unsigned int &pid) {
 	}
 }
 
+// Filter for equivalent value
+void equal_filter(Scan *current_scan) {
+	unsigned int val = 0;
+	cout << "What value do you want to look for?" << endl;
+	cin >> val;
+	cout << "Filtering for " << val << endl;
+	current_scan->update(COND_EQUALS, val);
+}
+
+// Filter for increased value
+void inc_filter(Scan *current_scan) {
+	cout << "Filtering for an increased value" << endl;
+	current_scan->update(COND_INCREASED, 0);
+}
+
+// Filter for decreased value
+void dec_filter(Scan *current_scan) {
+	cout << "Filtering for a decreased value" << endl;
+	current_scan->update(COND_DECREASED, 0);
+}
+
+void uncond_filter(Scan *current_scan) {
+	cout << "Resetting all conditions" << endl;
+	current_scan->update(COND_UNCONDITIONAL, 0);
+}
+
 int main(int argc, char *argv[]) {
 	Scan *current_scan;
 	unsigned int current_pid;
@@ -420,8 +446,10 @@ int main(int argc, char *argv[]) {
 			<< "3. Filter for equal value" << endl
 			<< "4. Filter for increased value" << endl
 			<< "5. Filter for decreased value" << endl
-			<< "6. Overwrite value" << endl
-			<< "7. Exit" << endl;
+			<< "6. Look at all current matches" << endl
+			<< "7. Reset to original matches" << endl
+			<< "8. Overwrite value" << endl
+			<< "9. Exit" << endl;
 
 		char choice;
 		cin >> choice;
@@ -435,18 +463,24 @@ int main(int argc, char *argv[]) {
 				current_scan = create_scan(current_scan, current_pid);
 				break;
 			case '3':
-				cout << "Choice 3." << endl;
+				equal_filter(current_scan);
 				break;
 			case '4':
-				cout << "Choice 4." << endl;
+				inc_filter(current_scan);
 				break;
 			case '5':
-				cout << "Choice 5." << endl;
+				dec_filter(current_scan);
 				break;
 			case '6':
-				cout << "Choice 6." << endl;
+				current_scan->print_matches();
 				break;
 			case '7':
+				uncond_filter(current_scan);
+				break;
+			case '8':
+				cout << "Choice 7." << endl;
+				break;
+			case '9':
 				cout << "Exiting." << endl;
 				return 0;
 				break;
@@ -455,10 +489,10 @@ int main(int argc, char *argv[]) {
 				break;
 		}
 	}
-	if(current_scan->head) {
+	if(current_scan) {
 		delete current_scan;
 	}
-/*
+	/*
 	Scan new_scan(atoi(argv[1]), 4);
 	if(new_scan.head) {
 		*/
@@ -468,9 +502,11 @@ int main(int argc, char *argv[]) {
 		new_scan.scan_dump();
 		*/
 		/*
-		new_scan.update(COND_EQUALS, 1000);
+		new_scan.update(COND_EQUALS, 123456);
 		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
 		new_scan.print_matches();
+		*/
+		/*
 		{
 			char a;
 			cin >> a;
