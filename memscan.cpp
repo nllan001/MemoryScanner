@@ -160,7 +160,7 @@ public:
 	_Scan(unsigned int pid, int data_size) {
 		head = NULL;
 		MEMORY_BASIC_INFORMATION meminfo;
-		unsigned char *addr;
+		unsigned char *addr = 0;
 		
 		// Gets the handle of the process with a request for all access
 		HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
