@@ -38,3 +38,14 @@
 	formed that seems to be due to the lack of an additional
 	istream object. Still unsure about why adding an istream object
 	causes the last memory block to be formed in a scan.
+
+11/15/2016
+-Found the missing memory block by initializing the initial address
+	when creating a scan to 0 rather than letting the computer 
+	assign it. Wrote up the overwrite functionality, tested it on
+	solitaire and it worked! Have to be careful with integer limits
+	though as the max on windows is 2.14 million. Need to smooth out
+	the program now. The program can be a bit tedious to use since
+	filters need to be constantly applied to narrow down the search
+	and there's currently no way to know how many searches would come 
+	up when printed. It'd also be nice to figure out a better ui overall.
