@@ -240,11 +240,12 @@ public:
 	// Print the addresses of every match
 	void print_matches() {
 		Memblock *temp_head = this->head;
+		int list_number = 0;
 		while(temp_head) {
 			for(unsigned int offset = 0; offset < temp_head->size; offset += temp_head->data_size) {
 				if(temp_head->is_in_search(offset)) {
 					unsigned int val = peek(temp_head->hProc, temp_head->addr + offset, temp_head->data_size);
-					printf("0x%08x: 0x%08x (%d)\r\n", temp_head->addr + offset, val, val);
+					printf("%d: Address - 0x%08x: Value - (Hex) 0x%08x, (Dec) %d\r\n", list_number++, temp_head->addr + offset, val, val);
 				}
 			}
 			temp_head = temp_head->next;
@@ -430,9 +431,47 @@ void dec_filter(Scan *current_scan) {
 	current_scan->update(COND_DECREASED, 0);
 }
 
+// Resets all matches
 void uncond_filter(Scan *current_scan) {
 	cout << "Resetting all conditions" << endl;
 	current_scan->update(COND_UNCONDITIONAL, 0);
+}
+
+// Overwrites a value at a specified address
+void overwrite(Scan *current_scan) {
+	unsigned int current_matches = current_scan->get_matches();
+	unsigned int match_wanted = 0;
+	unsigned int val = 0;
+	while(1) {
+		cout << "Current list of matches and their values:" << endl;
+		current_scan->print_matches();
+		cout << endl;
+		cout << "Enter list position of the value you want to overwrite:" << endl;
+		cin >> match_wanted;
+		if(match_wanted >= current_matches) {
+			cout << "Invalid input. Try again." << endl;
+		} else {
+			Memblock *temp_head = current_scan->head;
+			unsigned int list_number = 0;
+			while(temp_head) {
+				for(unsigned int offset = 0; offset < temp_head->size; offset += temp_head->data_size) {
+					if(temp_head->is_in_search(offset) && list_number < match_wanted) {
+						list_number++;
+					} else if(temp_head->is_in_search(offset) && list_number == match_wanted) {
+						unsigned int current_val = current_scan->peek(temp_head->hProc, temp_head->addr + offset, temp_head->data_size);
+						cout << "Current value is: " << current_val << endl;
+						cout << "Enter value to overwrite with:" << endl;
+						cin >> val;
+
+						current_scan->poke(temp_head->hProc, temp_head->addr + offset, temp_head->data_size, val);
+						cout << "Value has been overwritten." << endl;
+						return;
+					}
+				}
+				temp_head = temp_head->next;
+			}
+		}
+	}
 }
 
 int main(int argc, char *argv[]) {
@@ -478,7 +517,7 @@ int main(int argc, char *argv[]) {
 				uncond_filter(current_scan);
 				break;
 			case '8':
-				cout << "Choice 7." << endl;
+				overwrite(current_scan);
 				break;
 			case '9':
 				cout << "Exiting." << endl;
@@ -492,49 +531,6 @@ int main(int argc, char *argv[]) {
 	if(current_scan) {
 		delete current_scan;
 	}
-	/*
-	Scan new_scan(atoi(argv[1]), 4);
-	if(new_scan.head) {
-		*/
-		/*
-		new_scan.update(COND_UNCONDITIONAL, 4);
-		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
-		new_scan.scan_dump();
-		*/
-		/*
-		new_scan.update(COND_EQUALS, 123456);
-		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << " " << new_scan.get_size() << endl;
-		new_scan.print_matches();
-		*/
-		/*
-		{
-			char a;
-			cin >> a;
-		}
-		new_scan.update(COND_DECREASED, 2000);
-		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
-		new_scan.print_matches();
-		{
-			char a;
-			cin >> a;
-		}
-		new_scan.update(COND_INCREASED, 3000);
-		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
-		new_scan.print_matches();
-		{
-			char a;
-			cin >> a;
-		}
-		new_scan.poke(new_scan.head->hProc, new_scan.get_match(), 4, 20);
-*/
-		/*
-		new_scan.update(COND_EQUALS, 2000);
-		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
-		//new_scan.print_matches();
-		new_scan.update(COND_EQUALS, 1000);
-		cout << new_scan.get_matches() << " " << new_scan.get_matches2() << " " << new_scan.get_blocks() << endl;
-		*/
-	//}
 	return 0;
 }
 
