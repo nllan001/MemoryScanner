@@ -31,3 +31,10 @@
 11/12/2016
 -Some minor bug fixes were worked out and the peek/poke (read/write) 
 	functions were implemented. Starting work on the basic UI.
+
+11/14/2016
+-UI has most functionality other than poking/peeking. 
+	Strange bug has occurred where the last memory block isn't 
+	formed that seems to be due to the lack of an additional
+	istream object. Still unsure about why adding an istream object
+	causes the last memory block to be formed in a scan.
