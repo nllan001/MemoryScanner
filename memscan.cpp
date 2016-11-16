@@ -417,24 +417,28 @@ void equal_filter(Scan *current_scan) {
 	cin >> val;
 	cout << "Filtering for " << val << endl;
 	current_scan->update(COND_EQUALS, val);
+	cout << "Current matches: " << current_scan->get_matches() << endl;
 }
 
 // Filter for increased value
 void inc_filter(Scan *current_scan) {
 	cout << "Filtering for an increased value" << endl;
 	current_scan->update(COND_INCREASED, 0);
+	cout << "Current matches: " << current_scan->get_matches() << endl;
 }
 
 // Filter for decreased value
 void dec_filter(Scan *current_scan) {
 	cout << "Filtering for a decreased value" << endl;
 	current_scan->update(COND_DECREASED, 0);
+	cout << "Current matches: " << current_scan->get_matches() << endl;
 }
 
 // Resets all matches
 void uncond_filter(Scan *current_scan) {
 	cout << "Resetting all conditions" << endl;
 	current_scan->update(COND_UNCONDITIONAL, 0);
+	cout << "Current matches: " << current_scan->get_matches() << endl;
 }
 
 // Overwrites a value at a specified address
@@ -474,8 +478,8 @@ void overwrite(Scan *current_scan) {
 	}
 }
 
-int main(int argc, char *argv[]) {
-	Scan *current_scan;
+int ui_begin() {
+	Scan *current_scan = 0;
 	unsigned int current_pid;
 	while(1) {
 		cout << endl << "===================================" << endl
@@ -521,6 +525,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case '9':
 				cout << "Exiting." << endl;
+				if(current_scan) {
+					delete current_scan;
+				}
 				return 0;
 				break;
 			default:
@@ -534,14 +541,9 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-
-
-
-
-
-
-
-
+int main(int argc, char *argv[]) {
+	return ui_begin();	
+}
 
 
 
